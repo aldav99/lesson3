@@ -1,102 +1,86 @@
 class Station
 
+  attr_reader :name
+  attr_reader :trains
+  
   def initialize(name)
     @name = name
     @trains = []
   end
 
-  def name
-    @name
+  def add_train(train)
+    @trains << train
   end
 
-  def trains
-    @trains
+  def del_train(train)
+    @trains.delete(train)
   end
 
-  def list_train
-     self.trains.each { |train| puts train.name }
+  def list_type(type)
+    self.trains.select{ |train| train.type == type }
   end
 
-  def list_type
-     cargo = 0
-     passenger = 0
-     self.trains.each do |train|
-      train.type == "Пассажирский" ? passenger +=1 : cargo +=1
-     end
-     puts "Кол-во грузовых: #{cargo}"
-     puts "Кол-во пассажирских: #{passenger}"
+  def departure(train)
+     train.go_forward
   end
 
-  def departure(train, direction = 0)
-     direction == 0 ? train.go_forward : train.go_back
+  def arrive(train)
+     train.go_back
   end
 
 end
 
 class Route
+  
+  attr_reader :station
+
   def initialize(start, terminate)
-    @start = start
-    @terminate = terminate
-    @way_station = [@start, @terminate]
+    @station = [start, terminate]
   end
   
   def start
-    @start 
+    @station[0] 
   end
 
   def terminate
-    @terminate
+    @station[-1]
   end
 
-  def way_station
-    @way_station
-  end
-
-  def add_station(obj)
-    @way_station.insert(-2, obj)
+  def add_station(station)
+    @station.insert(-2, station)
   end
 
   def del_station(name)
-    @way_station.delete_if {|station| station.name == name }
+    if (@station[0].name == name || @station[-1].name == name)
+      puts "Начальные точки маршрута нельзя удальять"
+    else  
+      @station.delete_if {|station| station.name == name }
+    end
   end
 
   def way
     puts "Маршрут следования:"
-    @way_station.each { |station| puts "#{station.name}" }
+    @station.each { |station| puts "#{station.name}" }
   end
 
 end
 
 class Train
 
-  def initialize(name, type, wagons)
-    @name_train = name
+  attr_reader :name
+  attr_reader :type
+  attr_reader :speed
+
+  def initialize(name, type, wagons, route = [])
+    @name = name
     @type = type
     @wagons = wagons
     @speed = 0
-    @route = 0
+    @route = route
   end
-
-  def name
-    @name_train
-  end
-
-  def type
-    @type
-  end
-
-  def add_speed(n)
-    @speed += n
-    puts "Едем со скоростью #{@speed}"
-  end
-
-  def speed
-    @speed 
-  end
-
-  def down_speed(n)
-    (@speed -n) > 0 ? @speed -= n : @speed = 0
-    puts "Едем со скоростью #{@speed}"
+  
+  def change_speed(speed)
+    (@speed + speed) > 0 ? @speed += speed : @speed = 0
   end
 
   def wagons
@@ -108,57 +92,53 @@ class Train
   end
 
   def attach
-    self.stop
-    @wagons += 1
+    self.speed > 0 ? "Нужно остановиться" : @wagons += 1
   end
 
   def deattach
-    self.stop
-    (@wagons -1) > 0 ? @wagons -= 1 : @wagons = 0
+    puts "Нужно остановиться" if self.speed > 0 
+    @wagons -= 1 if @wagons > 0 
   end
 
-  def route(route)
+  def route=(route)
     @route = route
     @location = @route.start
-    @location.trains << self
+    @location.add_train(self)
+  end
+
+  def index
+    route = @route.station
+    route.index(@location)
   end
 
   def go_forward
-    puts "Приехали" if @location == @route.terminate
-    route = @route.way_station
-    ind = route.index(@location)
-    @location.trains.delete(self)
-    @location = route[ind + 1]
-    @location.trains << self
+    return if @location == @route.terminate
+    @location.del_train(self)
+    @location = @route.station[index + 1]
+    @location.add_train(self)
   end
 
   def go_back
-    puts "Приехали" if @location == @route.start
-    route = @route.way_station
-    ind = route.index(@location)
-    @location.trains.delete(self)
-    @location = route[ind -1]
-    @location.trains << self
+    return if @location == @route.start
+    @location.del_train(self)
+    @location = @route.station[index - 1]
+    @location.add_train(self)
   end
   
   def current_station
-    puts "Текущая станция: #{@location.name}"
+    return @location
   end
 
   def back_station
-    puts "Мы на старте" if @location == @route.start
-    route = @route.way_station
-    ind = route.index(@location)
-    backSt = route[ind - 1]
-    puts "Предыдущая станция: #{backSt.name}"
+    return if @location == @route.start
+    back_st = @route.station[index - 1]
+    puts "Предыдущая станция: #{back_st.name}"
   end
 
   def next_station
-    puts "Мы на финише" if @location == @route.terminate
-    route = @route.way_station
-    ind = route.index(@location)
-    nextSt = route[ind + 1]
-    puts "Следующая станция: #{nextSt.name}"
+    return if @location == @route.terminate
+    next_st = @route.station[index + 1]
+    puts "Следующая станция: #{next_st.name}"
   end
 
 end  
